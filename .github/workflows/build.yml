@@ -14,7 +14,7 @@ jobs:
         with:
           crate: xwin
       - name: Run xwin
-        run: xwin --accept-license splat --output $PWD/.xwin --disable-symlinks && rm -rf .xwin-cache
+        run: xwin --accept-license splat --output $PWD/.xwin --disable-symlinks --include-debug-libs && rm -rf .xwin-cache
 
       - name: build summary
         run: zig build --summary all -freference-trace -Dtarget=x86_64-windows-msvc

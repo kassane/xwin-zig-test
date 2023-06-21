@@ -4,14 +4,12 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // missing stdio.h
-
-    // buildExe(b, .{
-    //     .filepath = "src/hello-c.c",
-    //     .filetype = .c,
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
+    buildExe(b, .{
+        .filepath = "src/hello-c.c",
+        .filetype = .c,
+        .target = target,
+        .optimize = optimize,
+    });
     buildExe(b, .{
         .filepath = "src/hello-cpp.cpp",
         .filetype = .cpp,
@@ -46,8 +44,11 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
             exe.want_lto = false;
             exe.addSystemIncludePath(sdkPath("/.xwin/crt/include"));
             exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include"));
+            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/cppwinrt"));
+            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/ucrt"));
+            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/um"));
+            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/shared"));
             exe.addLibraryPath(sdkPath("/.xwin/crt/lib/x86_64"));
-            exe.addLibraryPath(sdkPath("/.xwin/sdk/lib/x86_64"));
             exe.addLibraryPath(sdkPath("/.xwin/sdk/lib/ucrt/x86_64"));
             exe.addLibraryPath(sdkPath("/.xwin/sdk/lib/um/x86_64"));
             exe.linkLibC();
