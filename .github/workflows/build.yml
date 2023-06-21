@@ -3,8 +3,12 @@ name: Build
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v3
       - uses: goto-bus-stop/setup-zig@v2
@@ -14,7 +18,7 @@ jobs:
         with:
           crate: xwin
       - name: Run xwin
-        run: xwin --accept-license splat --output $PWD/.xwin --disable-symlinks --include-debug-libs && rm -rf .xwin-cache
+        run: xwin --accept-license splat --output $PWD/.xwin --disable-symlinks --include-debug-symbols --preserve-ms-arch-notation --include-debug-libs
 
       - name: build summary
         run: zig build --summary all -freference-trace -Dtarget=x86_64-windows-msvc

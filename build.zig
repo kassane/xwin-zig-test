@@ -35,22 +35,32 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
     switch (info.filetype) {
         // zig w/ msvc no has libcxx support
         // https://github.com/ziglang/zig/issues/5312
-        .cpp, .c => {
+        .cpp => {
             exe.addCSourceFile(info.filepath, &.{
                 "-Wall",
                 "-Wextra",
                 // "-Werror",
             });
             exe.want_lto = false;
-            exe.addSystemIncludePath(sdkPath("/.xwin/crt/include"));
-            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include"));
-            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/cppwinrt"));
-            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/ucrt"));
-            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/um"));
-            exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/shared"));
-            exe.addLibraryPath(sdkPath("/.xwin/crt/lib/x86_64"));
-            exe.addLibraryPath(sdkPath("/.xwin/sdk/lib/ucrt/x86_64"));
-            exe.addLibraryPath(sdkPath("/.xwin/sdk/lib/um/x86_64"));
+            if (exe.target.isWindows()) {
+                xWin(b, exe);
+            }
+            if (exe.target.getAbi() == .msvc) {
+                exe.linkLibC();
+            } else {
+                exe.linkLibCpp();
+            }
+        },
+        .c => {
+            exe.addCSourceFile(info.filepath, &.{
+                "-Wall",
+                "-Wextra",
+                // "-Werror",
+            });
+            exe.want_lto = false;
+            if (exe.target.isWindows()) {
+                xWin(b, exe);
+            }
             exe.linkLibC();
         },
         .zig => exe.root_src = .{ .path = info.filepath },
@@ -65,7 +75,7 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
         run_cmd.addArgs(args);
     }
 
-    const run_step = b.step(info.filename(), b.fmt("Run the {s} app", .{exe.name}));
+    const run_step = b.step(info.filename(), b.fmt("Run the {s} app", .{info.filename()}));
     run_step.dependOn(&run_cmd.step);
 }
 
@@ -84,7 +94,25 @@ const BuildInfo = struct {
         return split.first();
     }
 };
+fn xWin(b: *std.Build, exe: *std.Build.Step.Compile) void {
+    const target = exe.target;
+    const arch: []const u8 = switch (target.getCpuArch()) {
+        .x86_64 => "x64",
+        .x86 => "x86",
+        .aarch64 => "arm64",
+        else => @panic("unknown"),
+    };
 
+    exe.addSystemIncludePath(sdkPath("/.xwin/crt/include"));
+    exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include"));
+    exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/cppwinrt"));
+    exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/ucrt"));
+    exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/um"));
+    exe.addSystemIncludePath(sdkPath("/.xwin/sdk/include/10.0.22000/shared"));
+    exe.addLibraryPath(b.fmt(sdkPath("/.xwin/crt/lib/{s}"), .{arch}));
+    exe.addLibraryPath(b.fmt(sdkPath("/.xwin/sdk/lib/ucrt/{s}"), .{arch}));
+    exe.addLibraryPath(b.fmt(sdkPath("/.xwin/sdk/lib/um/{s}"), .{arch}));
+}
 fn sdkPath(comptime suffix: []const u8) []const u8 {
     if (suffix[0] != '/') @compileError("relToPath requires an absolute path!");
     return comptime blk: {
