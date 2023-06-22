@@ -1,6 +1,6 @@
 # Zig with XWin (Experimental)
 
-## Whats is [xwin](https://github.com/Jake-Shadle/xwin)?
+## What is [xwin](https://github.com/Jake-Shadle/xwin)?
 
 A utility for downloading and packaging the Microsoft CRT headers and libraries, and Windows SDK headers and libraries needed for compiling and linking programs targeting Windows.
 
