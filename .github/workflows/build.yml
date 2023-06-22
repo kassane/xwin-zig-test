@@ -8,6 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         runs-on: [ubuntu-latest, macos-latest, windows-latest]
+        target: [x86_64, x86, aarch64]
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v3
@@ -18,7 +19,7 @@ jobs:
         with:
           crate: xwin
       - name: Run xwin
-        run: xwin --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --include-debug-libs
+        run: xwin --arch=${{ matrix.target }} --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --include-debug-libs
 
       - name: build summary
-        run: zig build --summary all -freference-trace -Dtarget=x86_64-windows-msvc
+        run: zig build --summary all -freference-trace -Dtarget=${{ matrix.target }}-windows-msvc
