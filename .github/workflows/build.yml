@@ -19,7 +19,7 @@ jobs:
         with:
           crate: xwin
       - name: Run xwin
-        run: xwin --arch=${{ matrix.target }} --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --include-debug-libs
+        run: xwin --arch=${{ matrix.target }} --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --disable-symlinks --include-debug-libs
 
       - name: build summary
-        run: zig build --summary all -freference-trace -Dtarget=${{ matrix.target }}-windows-msvc
+        run: zig build --summary all -freference-trace -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}-windows-msvc
