@@ -39,7 +39,6 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
             exe.addCSourceFile(info.filepath, &.{
                 "-Wall",
                 "-Wextra",
-                // "-Werror",
             });
             exe.want_lto = false;
             if (exe.target.isWindows()) {
@@ -55,7 +54,6 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
             exe.addCSourceFile(info.filepath, &.{
                 "-Wall",
                 "-Wextra",
-                // "-Werror",
             });
             exe.want_lto = false;
             if (exe.target.isWindows()) {
@@ -95,12 +93,13 @@ const BuildInfo = struct {
     }
 };
 fn xWin(b: *std.Build, exe: *std.Build.Step.Compile) void {
-    const target = exe.target;
-    const arch: []const u8 = switch (target.getCpuArch()) {
+    const target = (std.zig.system.NativeTargetInfo.detect(exe.target) catch unreachable).target;
+    const arch: []const u8 = switch (target.cpu.arch) {
         .x86_64 => "x64",
         .x86 => "x86",
+        .arm, .armeb => "arm",
         .aarch64 => "arm64",
-        else => @panic("unknown"),
+        else => @panic("Unsupported Architecture"),
     };
 
     exe.addSystemIncludePath(sdkPath("/.xwin/crt/include"));
