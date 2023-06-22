@@ -18,11 +18,16 @@ This experiment is for testing purposes only. Possibly to make it easier to buil
 
 The main targets for this experiment are:
 
-| Target | Native | Build | 
-| --- | --- | --- |
-| msvc-x64 | Yes | Ok |
-| msvc-x64 | No | Fail |
-| msvc-x86 | Yes | None |
-| msvc-x86 | No | None |
-| msvc-arm64 | Yes | None |
-| msvc-arm64 | No | None |
+| Target | Native | Build | Host |
+| --- | --- | --- | --- |
+| msvc-x64 | Yes | 🆗 | Windows |
+| msvc-x64 | No | ❌ | Linux |
+| msvc-x64 | No | 🆗 | MacOS |
+| msvc-x86 | Yes | ❌ | Windows |
+| msvc-x86 | No | ❌ | Linux |
+| msvc-x86 | No | 🆗 | MacOS |
+| msvc-arm64 | Yes | ❌ | Windows |
+| msvc-arm64 | No | ❌ | Linux |
+| msvc-arm64 | No | 🆗 | MacOS |
+
+**Note:** On linux the LLD is case-sensitive. maybe solve don't use `xwin` `--disable-symlinks` flag. However, it breaks the macos build!
