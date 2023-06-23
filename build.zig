@@ -41,10 +41,8 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
                 "-Wextra",
             });
             exe.want_lto = false;
-            if (exe.target.isWindows()) {
-                xWin(b, exe);
-            }
             if (exe.target.getAbi() == .msvc) {
+                xWin(b, exe);
                 exe.linkLibC();
             } else {
                 exe.linkLibCpp();
@@ -55,8 +53,7 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
                 "-Wall",
                 "-Wextra",
             });
-            exe.want_lto = false;
-            if (exe.target.isWindows()) {
+            if (exe.target.getAbi() == .msvc) {
                 xWin(b, exe);
             }
             exe.linkLibC();

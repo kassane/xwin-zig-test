@@ -1,24 +1,32 @@
 const std = @import("std");
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    std.debug.print("Sleep sorting\n", .{});
+    const values = [_]usize{ 9, 40, 10, 1, 6, 45, 23, 50 };
+    for (values) |num| {
+        std.debug.print("{} ", .{num});
+    }
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    std.debug.print("\nSort numbers: ", .{});
+    try sleepSort([values.len]usize, values, allocator);
+    std.debug.print("\n", .{});
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+fn sleepSort(comptime T: type, nums: T, alloc: std.mem.Allocator) !void {
+    var threadpool: std.Thread.Pool = undefined;
+    try threadpool.init(.{ .allocator = alloc });
+    defer threadpool.deinit();
+
+    for (nums) |num| {
+        try threadpool.spawn(sleep, .{num});
+    }
+}
+
+fn sleep(num: usize) void {
+    std.time.sleep(num * std.time.ns_per_ms);
+    std.debug.print("{} ", .{num});
 }
