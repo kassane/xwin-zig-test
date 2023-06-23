@@ -23,10 +23,10 @@ The main targets for this experiment are:
 | msvc-x64 | Yes | 🆗 | Windows |
 | msvc-x64 | No | 🆗 | Linux |
 | msvc-x64 | No | 🆗 | MacOS |
-| msvc-x86 | Yes | ❌ | Windows |
+| msvc-x86 | Yes | 🆗 | Windows |
 | msvc-x86 | No | 🆗 | Linux |
 | msvc-x86 | No | 🆗 | MacOS |
-| msvc-arm64 | Yes | ❌ | Windows |
+| msvc-arm64 | Yes | 🆗 | Windows |
 | msvc-arm64 | No | 🆗 | Linux |
 | msvc-arm64 | No | 🆗 | MacOS |
 
