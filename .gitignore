@@ -14,8 +14,7 @@ Cargo.lock
 *.pdb
 
 # Zig build
-zig-cache/
-zig-out/
+*zig-*/
 
 # Xwin Unpack
 .xwin/

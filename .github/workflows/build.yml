@@ -11,10 +11,8 @@ jobs:
         target: [x86_64, x86, aarch64]
     runs-on: ${{ matrix.runs-on }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: 0.11.0
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v1
       - uses: baptiste0928/cargo-install@v2
         with:
           crate: xwin

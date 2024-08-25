@@ -36,12 +36,15 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
         // zig w/ msvc no has libcxx support
         // https://github.com/ziglang/zig/issues/5312
         .cpp => {
-            exe.addCSourceFile(.{ .file = .{ .path = info.filepath }, .flags = &.{
-                "-Wall",
-                "-Wextra",
-            } });
+            exe.addCSourceFile(.{
+                .file = b.path(info.filepath),
+                .flags = &.{
+                    "-Wall",
+                    "-Wextra",
+                },
+            });
             exe.want_lto = false;
-            if (exe.target.getAbi() == .msvc) {
+            if (exe.rootModuleTarget().abi == .msvc) {
                 xWin(b, exe);
                 exe.linkLibC();
             } else {
@@ -49,16 +52,19 @@ fn buildExe(b: *std.Build, info: BuildInfo) void {
             }
         },
         .c => {
-            exe.addCSourceFile(.{ .file = .{ .path = info.filepath }, .flags = &.{
-                "-Wall",
-                "-Wextra",
-            } });
-            if (exe.target.getAbi() == .msvc) {
+            exe.addCSourceFile(.{
+                .file = b.path(info.filepath),
+                .flags = &.{
+                    "-Wall",
+                    "-Wextra",
+                },
+            });
+            if (exe.rootModuleTarget().abi == .msvc) {
                 xWin(b, exe);
             }
             exe.linkLibC();
         },
-        .zig => exe.root_src = .{ .path = info.filepath },
+        .zig => exe.root_module.root_source_file = b.path(info.filepath),
     }
     b.installArtifact(exe);
 
@@ -81,7 +87,7 @@ const BuildInfo = struct {
         cpp,
         zig,
     },
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 
     fn filename(self: BuildInfo) []const u8 {
@@ -90,8 +96,7 @@ const BuildInfo = struct {
     }
 };
 fn xWin(b: *std.Build, exe: *std.Build.Step.Compile) void {
-    const target = (std.zig.system.NativeTargetInfo.detect(exe.target) catch unreachable).target;
-    const arch: []const u8 = switch (target.cpu.arch) {
+    const arch: []const u8 = switch (exe.rootModuleTarget().cpu.arch) {
         .x86_64 => "x64",
         .x86 => "x86",
         .arm, .armeb => "arm",
@@ -99,16 +104,16 @@ fn xWin(b: *std.Build, exe: *std.Build.Step.Compile) void {
         else => @panic("Unsupported Architecture"),
     };
 
-    exe.setLibCFile(.{ .path = sdkPath("/libc.txt") });
-    exe.addSystemIncludePath(.{ .path = sdkPath("/.xwin/crt/include") });
-    exe.addSystemIncludePath(.{ .path = sdkPath("/.xwin/sdk/include") });
-    exe.addSystemIncludePath(.{ .path = sdkPath("/.xwin/sdk/include/10.0.22000/cppwinrt") });
-    exe.addSystemIncludePath(.{ .path = sdkPath("/.xwin/sdk/include/10.0.22000/ucrt") });
-    exe.addSystemIncludePath(.{ .path = sdkPath("/.xwin/sdk/include/10.0.22000/um") });
-    exe.addSystemIncludePath(.{ .path = sdkPath("/.xwin/sdk/include/10.0.22000/shared") });
-    exe.addLibraryPath(.{ .path = b.fmt(sdkPath("/.xwin/crt/lib/{s}"), .{arch}) });
-    exe.addLibraryPath(.{ .path = b.fmt(sdkPath("/.xwin/sdk/lib/ucrt/{s}"), .{arch}) });
-    exe.addLibraryPath(.{ .path = b.fmt(sdkPath("/.xwin/sdk/lib/um/{s}"), .{arch}) });
+    exe.setLibCFile(.{ .cwd_relative = sdkPath("/libc.txt") });
+    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/crt/include") });
+    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include") });
+    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.26100/cppwinrt") });
+    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.26100/ucrt") });
+    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.26100/um") });
+    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.26100/shared") });
+    exe.addLibraryPath(.{ .cwd_relative = b.fmt(sdkPath("/.xwin/crt/lib/{s}"), .{arch}) });
+    exe.addLibraryPath(.{ .cwd_relative = b.fmt(sdkPath("/.xwin/sdk/lib/ucrt/{s}"), .{arch}) });
+    exe.addLibraryPath(.{ .cwd_relative = b.fmt(sdkPath("/.xwin/sdk/lib/um/{s}"), .{arch}) });
 }
 fn sdkPath(comptime suffix: []const u8) []const u8 {
     if (suffix[0] != '/') @compileError("relToPath requires an absolute path!");

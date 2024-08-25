@@ -12,7 +12,7 @@ This experiment is for testing purposes only. Possibly to make it easier to buil
 ## Requirements
 
 - [xwin](https://github.com/Jake-Shadle/xwin)
-- [zig 0.11 or higher](https://ziglang.org/download)
+- [zig 0.13.x or higher](https://ziglang.org/download)
 
 ## Testing
 
