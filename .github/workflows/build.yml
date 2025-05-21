@@ -22,10 +22,10 @@ jobs:
           crate: xwin
       - name: Run xwin
         if: (startsWith(matrix.runs-on, 'windows')) || (startsWith(matrix.runs-on, 'macos'))
-        run: xwin --arch=${{ matrix.target }} --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --disable-symlinks --include-debug-libs
+        run: xwin --arch=${{ matrix.target }} --manifest-version 16 --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --disable-symlinks --include-debug-libs
       - name: Run xwin (linux only)
         if: startsWith(matrix.runs-on, 'ubuntu')
-        run: xwin --arch=${{ matrix.target }} --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --include-debug-libs
+        run: xwin --arch=${{ matrix.target }} --manifest-version 16 --accept-license splat --output $PWD/.xwin --include-debug-symbols --preserve-ms-arch-notation --include-debug-libs
 
       - name: build summary
         run: zig build --summary all -freference-trace -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}-windows-msvc
