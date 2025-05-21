@@ -104,6 +104,8 @@ fn xWin(b: *std.Build, exe: *std.Build.Step.Compile) void {
         else => @panic("Unsupported Architecture"),
     };
 
+    exe.subsystem = .Console;
+
     exe.setLibCFile(.{ .cwd_relative = sdkPath("/libc.txt") });
     exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/crt/include") });
     exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include") });
