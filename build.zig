@@ -1,127 +1,75 @@
 const std = @import("std");
 
+const Program = struct {
+    path: []const u8,
+    lang: enum { c, cpp, zig },
+};
+
+const programs = [_]Program{
+    .{ .path = "src/hello-c.c", .lang = .c },
+    .{ .path = "src/hello-cpp.cpp", .lang = .cpp },
+    .{ .path = "src/hello-zig.zig", .lang = .zig },
+};
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-
-    buildExe(b, .{
-        .filepath = "src/hello-c.c",
-        .filetype = .c,
-        .target = target,
-        .optimize = optimize,
-    });
-    buildExe(b, .{
-        .filepath = "src/hello-cpp.cpp",
-        .filetype = .cpp,
-        .target = target,
-        .optimize = optimize,
-    });
-
-    // no need libc
-    buildExe(b, .{
-        .filepath = "src/hello-zig.zig",
-        .filetype = .zig,
-        .target = target,
-        .optimize = optimize,
-    });
+    for (programs) |program| addProgram(b, program, target, optimize);
 }
 
-fn buildExe(b: *std.Build, info: BuildInfo) void {
+fn addProgram(b: *std.Build, program: Program, target: std.Build.ResolvedTarget, optimize: std.builtin.Optimize) void {
+    const name = std.fs.path.stem(program.path);
     const exe = b.addExecutable(.{
-        .name = info.filename(),
-        .target = info.target,
-        .optimize = info.optimize,
+        .name = name,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+            .root_source_file = if (program.lang == .zig) b.path(program.path) else null,
+        }),
     });
-    switch (info.filetype) {
-        // zig w/ msvc no has libcxx support
-        // https://github.com/ziglang/zig/issues/5312
-        .cpp => {
-            exe.addCSourceFile(.{
-                .file = b.path(info.filepath),
-                .flags = &.{
-                    "-Wall",
-                    "-Wextra",
-                },
-            });
-            exe.want_lto = false;
-            if (exe.rootModuleTarget().abi == .msvc) {
-                xWin(b, exe);
-                exe.linkLibC();
-            } else {
-                exe.linkLibCpp();
-            }
-        },
-        .c => {
-            exe.addCSourceFile(.{
-                .file = b.path(info.filepath),
-                .flags = &.{
-                    "-Wall",
-                    "-Wextra",
-                },
-            });
-            if (exe.rootModuleTarget().abi == .msvc) {
-                xWin(b, exe);
-            }
-            exe.linkLibC();
-        },
-        .zig => exe.root_module.root_source_file = b.path(info.filepath),
+
+    if (program.lang != .zig) {
+        exe.root_module.addCSourceFile(.{
+            .file = b.path(program.path),
+            .flags = &.{ "-Wall", "-Wextra" },
+        });
+        // zig ships no libc++ for the msvc abi: ziglang/zig#5312
+        if (program.lang == .cpp and target.result.abi != .msvc) {
+            exe.root_module.link_libcpp = true;
+        } else {
+            exe.root_module.link_libc = true;
+        }
     }
+    if (target.result.abi == .msvc) xwin(b, exe);
+
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep()); // run from zig-out, not the cache
+    run_cmd.addPassthruArgs(); // `zig build <name> -- args`
 
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-
-    const run_step = b.step(info.filename(), b.fmt("Run the {s} app", .{info.filename()}));
+    const run_step = b.step(name, b.fmt("Run the {s} app", .{name}));
     run_step.dependOn(&run_cmd.step);
 }
 
-const BuildInfo = struct {
-    filepath: []const u8,
-    filetype: enum {
-        c,
-        cpp,
-        zig,
-    },
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-
-    fn filename(self: BuildInfo) []const u8 {
-        var split = std.mem.splitSequence(u8, std.fs.path.basename(self.filepath), ".");
-        return split.first();
-    }
-};
-fn xWin(b: *std.Build, exe: *std.Build.Step.Compile) void {
-    const arch: []const u8 = switch (exe.rootModuleTarget().cpu.arch) {
-        .x86_64 => "x64",
+// zig bundles the mingw libraries only, so the msvc abi needs the SDK
+// unpacked by `xwin` (see `libc.txt` and `zig libc`).
+fn xwin(b: *std.Build, exe: *std.Build.Step.Compile) void {
+    const arch = switch (exe.rootModuleTarget().cpu.arch) {
         .x86 => "x86",
+        .x86_64 => "x64",
         .arm, .armeb => "arm",
         .aarch64 => "arm64",
-        else => @panic("Unsupported Architecture"),
+        else => @panic("unsupported architecture"),
     };
 
-    exe.subsystem = .Console;
+    exe.subsystem = .console;
+    exe.setLibCFile(b.path("libc.txt"));
 
-    exe.setLibCFile(.{ .cwd_relative = sdkPath("/libc.txt") });
-    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/crt/include") });
-    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include") });
-    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.22000/cppwinrt") });
-    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.22000/ucrt") });
-    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.22000/um") });
-    exe.addSystemIncludePath(.{ .cwd_relative = sdkPath("/.xwin/sdk/include/10.0.22000/shared") });
-    exe.addLibraryPath(.{ .cwd_relative = b.fmt(sdkPath("/.xwin/crt/lib/{s}"), .{arch}) });
-    exe.addLibraryPath(.{ .cwd_relative = b.fmt(sdkPath("/.xwin/sdk/lib/ucrt/{s}"), .{arch}) });
-    exe.addLibraryPath(.{ .cwd_relative = b.fmt(sdkPath("/.xwin/sdk/lib/um/{s}"), .{arch}) });
-}
-fn sdkPath(comptime suffix: []const u8) []const u8 {
-    if (suffix[0] != '/') @compileError("relToPath requires an absolute path!");
-    return comptime blk: {
-        @setEvalBranchQuota(2000);
-        const root_dir = std.fs.path.dirname(@src().file) orelse ".";
-        break :blk root_dir ++ suffix;
-    };
+    // `libc.txt` covers the ucrt and crt headers; `um`, `shared` and atlmfc
+    // are derived from them by zig.
+    exe.root_module.addSystemIncludePath(b.path(".xwin/sdk/include/cppwinrt"));
+    for ([_][]const u8{ ".xwin/crt/lib", ".xwin/sdk/lib/ucrt", ".xwin/sdk/lib/um" }) |dir| {
+        exe.root_module.addLibraryPath(b.path(b.fmt("{s}/{s}", .{ dir, arch })));
+    }
 }

@@ -39,8 +39,8 @@ int main() {
 #ifdef _WIN32
   printf("\nSorted numbers: ");
   sleepSortArray(arr, size);
-  printf("\n");
 #endif
+  printf("\n");
 
   return 0;
 }

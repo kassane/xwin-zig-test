@@ -17,5 +17,5 @@ Cargo.lock
 *zig-*/
 
 # Xwin Unpack
-.xwin/
+.xwin
 .xwin-cache/

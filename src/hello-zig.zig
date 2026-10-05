@@ -1,32 +1,27 @@
 const std = @import("std");
 
-pub fn main() !void {
-    std.debug.print("Sleep sorting\n", .{});
-    const values = [_]usize{ 9, 40, 10, 1, 6, 45, 23, 50 };
-    for (values) |num| {
-        std.debug.print("{} ", .{num});
-    }
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
 
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const allocator = arena.allocator();
-    defer arena.deinit();
+    std.debug.print("Sleep sorting\n", .{});
+
+    const values = [_]usize{ 9, 40, 10, 1, 6, 45, 23, 50 };
+    for (values) |num| std.debug.print("{} ", .{num});
 
     std.debug.print("\nSort numbers: ", .{});
-    try sleepSort([values.len]usize, values, allocator);
+    try sleepSort(io, &values);
     std.debug.print("\n", .{});
 }
 
-fn sleepSort(comptime T: type, nums: T, alloc: std.mem.Allocator) !void {
-    var threadpool: std.Thread.Pool = undefined;
-    try threadpool.init(.{ .allocator = alloc });
-    defer threadpool.deinit();
-
-    for (nums) |num| {
-        try threadpool.spawn(sleep, .{num});
+fn sleepSort(io: std.Io, comptime nums: []const usize) !void {
+    var threads: [nums.len]std.Thread = undefined;
+    for (nums, &threads) |num, *thread| {
+        thread.* = try std.Thread.spawn(.{}, sleep, .{ io, num });
     }
+    for (threads) |thread| thread.join();
 }
 
-fn sleep(num: usize) void {
-    std.time.sleep(num * std.time.ns_per_ms);
+fn sleep(io: std.Io, num: usize) void {
+    io.sleep(.fromMilliseconds(@intCast(num)), .awake) catch {};
     std.debug.print("{} ", .{num});
 }
